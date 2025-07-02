@@ -12,6 +12,10 @@ To install the required dependencies, run the following command:
 pip install -r requirements.txt
 ```
 
+## Repository Structure
+
+- `./baseline_models/`: Contains all models used in the experiments.
+
 ## Running the Numerical Experiments
 
 ### Comparing Baselines
@@ -45,8 +49,3 @@ To perform the additional experiments, run:
 ```bash
 ./run_other_tests.sh
 ```
-
-## Repository Structure
-
-- `./baseline_models/`: Contains all models used in the experiments.
-- `./results/`: Directory where `.pkl` files from `./run_all_experiments.sh` are saved.
