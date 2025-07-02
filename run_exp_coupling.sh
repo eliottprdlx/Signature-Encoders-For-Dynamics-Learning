@@ -1,0 +1,14 @@
+python exp_all_baselines.py --dataset "fitzhugh_nagumo_with_delay" --coupling_factor 0.1
+python exp_all_baselines.py --dataset "fitzhugh_nagumo_with_delay" --coupling_factor 0.2
+python exp_all_baselines.py --dataset "fitzhugh_nagumo_with_delay" --coupling_factor 0.3
+python exp_all_baselines.py --dataset "fitzhugh_nagumo_with_delay" --coupling_factor 0.4
+python exp_all_baselines.py --dataset "fitzhugh_nagumo_with_delay" --coupling_factor 0.5
+python exp_all_baselines.py --dataset "fitzhugh_nagumo_with_delay" --coupling_factor 0.6
+python exp_all_baselines.py --dataset "fitzhugh_nagumo_with_delay" --coupling_factor 0.7
+python exp_all_baselines.py --dataset "fitzhugh_nagumo_with_delay" --coupling_factor 0.8
+python exp_all_baselines.py --dataset "fitzhugh_nagumo_with_delay" --coupling_factor 0.9
+python exp_all_baselines.py --dataset "fitzhugh_nagumo_with_delay" --coupling_factor 1.0
+python exp_all_baselines.py --dataset "fitzhugh_nagumo_with_delay" --coupling_factor 1.1
+python exp_all_baselines.py --dataset "fitzhugh_nagumo_with_delay" --coupling_factor 1.2
+python exp_all_baselines.py --dataset "fitzhugh_nagumo_with_delay" --coupling_factor 1.3
+python exp_all_baselines.py --dataset "fitzhugh_nagumo_with_delay" --coupling_factor 1.4
