@@ -23,7 +23,7 @@ pip install -r requirements.txt
 To compare all baselines across all datasets, execute the following script:
 
 ```bash
-./run_all_experiments.sh
+./run_baselines_comparison.sh
 ```
 
 ### Ablation Study
