@@ -20,7 +20,7 @@ pip install -r requirements.txt
 
 ### Comparing Baselines
 
-To compare all baselines across all datasets, execute the following script:
+To compare all baselines across all datasets, execute the script:
 
 ```bash
 ./run_baselines_comparison.sh
@@ -28,15 +28,15 @@ To compare all baselines across all datasets, execute the following script:
 
 ### Ablation Study
 
-To perform the ablation study, run:
+To perform the ablation study, execute the script:
 
 ```bash
 ./run_ablation_study.sh
 ```
 
-### Sensitivity analysis
+### Sensitivity Analysis
 
-To perform the sensitivity analysis, run:
+To perform the sensitivity analysis, execute the script:
 
 ```bash
 ./run_sensitivity_analysis.sh
@@ -44,7 +44,7 @@ To perform the sensitivity analysis, run:
 
 ### Coupling Factor Experiment
 
-To perform the coupling factor experiment, run:
+To perform the coupling factor experiment, execute the script:
 
 ```bash
 ./run_exp_coupling.sh
@@ -52,7 +52,7 @@ To perform the coupling factor experiment, run:
 
 ### Additional Experiments
 
-To perform the additional experiments, run:
+To perform the additional experiments, execute the script:
 
 ```bash
 ./run_other_tests.sh
