@@ -50,8 +50,8 @@ def experiment_with_all_baselines(
   for seed in range(start_seed, start_seed + run_number_of_seeds):
     torch.random.manual_seed(seed)
 
-    Path("./results_temp").mkdir(parents=True, exist_ok=True)
-    path = f"./results_temp/{path_name}-{seed}.pkl"
+    Path("./results").mkdir(parents=True, exist_ok=True)
+    path = f"./results/{path_name}-{seed}_ablation_sensitivity.pkl"
 
     (
         input_dim,
@@ -90,14 +90,13 @@ def experiment_with_all_baselines(
       pickle.dump(saved_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
 
     depths = [1, 2, 3]
-    use_augments = [False, True]
 
     models = []
 
-    for use_augment, depth in itertools.product(use_augments, depths):
+    for depth in depths:
         models += [
         (  
-            f"Sig Neural Laplace (use_augment = {use_augment}, depth = {depth})",
+            f"Sig Neural Laplace (depth = {depth})",
             GeneralNeuralLaplace(
                 input_dim=input_dim,
                 output_dim=output_dim,
@@ -113,12 +112,12 @@ def experiment_with_all_baselines(
                     "kernel_size": 40,
                     "depth": depth,
                     "stride": 1,
-                    "use_augment": use_augment
+                    "use_augment": True
                 }
             ).to(device_param),
         ),
         (
-            f"Sig Neural Flow ResNet (use_augment = {use_augment}, depth = {depth})",
+            f"Sig Neural Flow ResNet (depth = {depth})",
             GeneralLatentODE(
                 dim=input_dim,
                 model="flow",
@@ -133,7 +132,7 @@ def experiment_with_all_baselines(
                     "kernel_size": 40,
                     "depth": depth,
                     "stride": 1,
-                    "use_augment": use_augment
+                    "use_augment": True
                 }
             ).to(device_param),
         ),
@@ -201,7 +200,7 @@ def experiment_with_all_baselines(
   latex_str = test_rmse_df_inner.style.to_latex()
   logger.info(latex_str)
   save_key = dataset
-  filename = f"ablation_sensitivity_{dataset}.tex"
+  filename = f"sensitivity_{dataset}.tex"
   with open(filename, "w") as f:
     f.write(latex_str)
   return test_rmse_df_inner

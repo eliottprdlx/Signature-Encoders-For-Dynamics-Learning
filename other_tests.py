@@ -15,8 +15,6 @@ import torch
 from baseline_models.neural_laplace import GeneralNeuralLaplace
 from baseline_models.ode_models import GeneralLatentODE
 from baseline_models.original_ode_models import GeneralNODE
-from baseline_models.sig_ode_models import SigGeneralLatentODE
-from baseline_models.sig_neural_laplace import GeneralSigNeuralLaplace
 from datasets import generate_data_set
 from config import *
 
@@ -41,7 +39,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     *_,
 ) = generate_data_set(
     dataset,
-    device_param,
+    device,
     double=False,
     batch_size=batch_size,
     trajectories_to_sample=trajectories_to_sample,
@@ -50,14 +48,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     noise_std=noise_std,
     t_nsamples=time_points_to_sample,
     observe_step=observe_step,
-    predict_step=predict_step,
-    coupling_factor=coupling_factor,
-    percent_missing_at_random=percent_missing_at_random,
+    predict_step=predict_step
 )
 
 df_list_baseline_results = []
 
-for seed in range(seed, seed + run_number_of_seeds):
+for seed in range(start_seed, start_seed + run_number_of_seeds):
     models = [
     ("Neural Laplace", GeneralNeuralLaplace(
         input_dim=input_dim,
@@ -124,7 +120,7 @@ for seed in range(seed, seed + run_number_of_seeds):
     for model_name, system in models:
         system.model.load_state_dict(saved_dict[model_name]["model_state_dict"])
         system.model.eval()
-        system.model.to(device_param)
+        system.model.to(device)
         _, test_mse = system.test_step(dltest)
         test_rmse = np.sqrt(test_mse.item())
 
@@ -138,6 +134,6 @@ df_results = pd.DataFrame(df_list_baseline_results)
 test_rmse_df_inner = df_results.groupby("method")[["test_rmse"]].agg(["mean", "std"])
 latex_str = test_rmse_df_inner.style.to_latex()
 
-filename = f"other_tests_{dataset}_{noise_std}_{time_points_to_sample}"
+filename = f"other_tests_{dataset}_{noise_std}_{time_points_to_sample}.tex"
 with open(filename, "w") as f:
     f.write(latex_str)

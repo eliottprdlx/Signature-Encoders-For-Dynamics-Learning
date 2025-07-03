@@ -25,13 +25,3 @@ s_recon_terms = 33
 patience = 500
 use_sphere_projection = True
 ilt_algorithm = "fourier"
-
-line_styles = {
-    'True Trajectory':        {'color': 'black', 'dash': 'dash'},
-    'Neural Laplace':         {'color': '#1f77b4'},
-    'Sig Neural Laplace':     {'color': '#aec7e8'},
-    'NODE (euler)':           {'color': '#ff7f0e'},
-    'ANODE (euler)':          {'color': '#2ca02c'},
-    'Neural Flow ResNet':         {'color': '#d62728'},
-    'Sig Neural Flow ResNet':     {'color': '#ff9896'},
-}

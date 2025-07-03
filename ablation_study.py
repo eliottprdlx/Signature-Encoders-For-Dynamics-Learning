@@ -1,8 +1,7 @@
 # pytype: skip-file
 """
-This module runs experiments comparing signature-based models (using path signatures)
-to RNN-based models and other baselines, including Neural ODEs (NODE) 
-and Augmented NODEs (ANODE).
+This module runs sensitivity and ablation studies comparing signature-based models 
+to RNN-based and ODE-based baselines across multiple dynamical systems with delay.
 """
 
 # Based on the original implementation by Samuel Holt, 
@@ -41,8 +40,7 @@ file_name = Path(__file__).stem
 def experiment_with_all_baselines(
     dataset,
     device_param,
-    path_name,
-    coupling_factor
+    path_name
 ):
   observe_samples = (time_points_to_sample // 2) // observe_step
   logger.info("Experimentally observing %d samples", observe_samples)  # pylint: disable=possibly-used-before-assignment
@@ -53,7 +51,7 @@ def experiment_with_all_baselines(
     torch.random.manual_seed(seed)
 
     Path("./results").mkdir(parents=True, exist_ok=True)
-    path = f"./results/{path_name}-{seed}.pkl"
+    path = f"./results/{path_name}-{seed}_ablation.pkl"
 
     (
         input_dim,
@@ -76,7 +74,6 @@ def experiment_with_all_baselines(
         t_nsamples=time_points_to_sample,
         observe_step=observe_step,
         predict_step=predict_step,
-        coupling_factor=coupling_factor
     )
 
     saved_dict = {}
@@ -92,42 +89,14 @@ def experiment_with_all_baselines(
     with open(path, "wb") as f:
       pickle.dump(saved_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    for model_name, system in [
-        (
-            f"NODE ({ode_solver_method})",
-            GeneralNODE(
-                obs_dim=input_dim,
-                nhidden=136,
-                method=ode_solver_method,
-                extrap=extrapolate,
-            ).to(device_param),
-        ),
-        (
-            f"ANODE ({ode_solver_method})",
-            GeneralNODE(
-                obs_dim=input_dim,
-                nhidden=136,
-                method=ode_solver_method,
-                extrap=extrapolate,
-                augment_dim=1,
-            ).to(device_param),
-        ),
-        (
-            "Neural Laplace",
-            GeneralNeuralLaplace(
-                input_dim=input_dim,
-                output_dim=output_dim,
-                latent_dim=latent_dim,
-                hidden_units=42,
-                s_recon_terms=s_recon_terms,
-                use_sphere_projection=use_sphere_projection,
-                ilt_algorithm=ilt_algorithm,
-                encode_obs_time=encode_obs_time,
-                encoder_type='gru'
-            ).to(device_param),
-        ),
+    use_augments = [False, True]
+
+    models = []
+
+    for use_augment in use_augments:
+        models += [
         (  
-            "Sig Neural Laplace",
+            f"Sig Neural Laplace (use_augment = {use_augment})",
             GeneralNeuralLaplace(
                 input_dim=input_dim,
                 output_dim=output_dim,
@@ -143,25 +112,12 @@ def experiment_with_all_baselines(
                     "kernel_size": 40,
                     "depth": 3,
                     "stride": 1,
-                    "use_augment": True
+                    "use_augment": use_augment
                 }
             ).to(device_param),
         ),
         (
-            "Neural Flow ResNet",
-            GeneralLatentODE(
-                dim=input_dim,
-                model="flow",
-                flow_model="resnet",
-                hidden_dim=26,
-                hidden_layers=latent_dim,
-                latents=latent_dim,
-                n_classes=input_dim,
-                z0_encoder='ode_rnn'
-            ).to(device_param),
-        ),
-        (
-            "Sig Neural Flow ResNet",
+            f"Sig Neural Flow ResNet (use_augment = {use_augment})",
             GeneralLatentODE(
                 dim=input_dim,
                 model="flow",
@@ -176,11 +132,12 @@ def experiment_with_all_baselines(
                     "kernel_size": 40,
                     "depth": 3,
                     "stride": 1,
-                    "use_augment": True
+                    "use_augment": use_augment
                 }
             ).to(device_param),
         ),
-    ]:
+        ]
+    for model_name, system in models:
       try:
         logger.info("Training & testing for : %s \t | seed: %d", model_name,
                     seed)
@@ -243,9 +200,8 @@ def experiment_with_all_baselines(
   latex_str = test_rmse_df_inner.style.to_latex()
   logger.info(latex_str)
   save_key = dataset
-  if dataset == "fitzhugh_nagumo_with_delay" and coupling_factor != 1.0:
-    save_key += f"_{coupling_factor}"
-  with open(f"test_rmse_results_{save_key}.tex", "w") as f:
+  filename = f"ablation_{dataset}.tex"
+  with open(filename, "w") as f:
     f.write(latex_str)
   return test_rmse_df_inner
 
@@ -262,7 +218,6 @@ if __name__ == "__main__":
       help=f"Available datasets: {datasets}",
   )
   parser.add_argument("--gpu", type=int, default=0)
-  parser.add_argument("--coupling_factor", type=float, default=1.0)
   args = parser.parse_args()
 
   assert args.dataset in datasets
@@ -271,8 +226,6 @@ if __name__ == "__main__":
 
   Path("./logs").mkdir(parents=True, exist_ok=True)
   path_run_name = f"{file_name}-{args.dataset}"
-  if args.dataset == "fitzhugh_nagumo_with_delay" and args.coupling_factor != 1.0:
-    path_run_name += f"_{args.coupling_factor}"
   logging.basicConfig(
       format="%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s",
       handlers=[
@@ -288,6 +241,5 @@ if __name__ == "__main__":
   test_rmse_df = experiment_with_all_baselines(
       args.dataset,
       device,
-      path_run_name,
-      args.coupling_factor
+      path_run_name
   )
