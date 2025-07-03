@@ -1,4 +1,4 @@
-# Experimental code for "Signature-based Encoder for Dynamics Learning"
+# Experimental code for "Learning non-Markovian Dynamical Systems with Signatured-based Encoders"
 
 This repository provides instructions to generate all datasets used in our paper, along with the necessary files to train each model and perform the numerical experiments. Most of the code is adapted from the [Official Neural Laplace GitHub Repository](https://github.com/samholt/NeuralLaplace).
 
