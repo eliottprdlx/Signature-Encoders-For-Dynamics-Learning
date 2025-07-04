@@ -67,43 +67,48 @@ class Encoder(nn.Module):
                  hidden_units,
                  encode_obs_time=True,
                  signature_kwargs=None):
-        super(Encoder, self).__init__()
+      super(Encoder, self).__init__()
 
-        if encoder_type not in ["gru", "signature"]:
-            raise ValueError(f"Unknown encoder type '{encoder_type}'. Choose 'gru' or 'signature'.")
+      if encoder_type not in ["gru", "signature"]:
+          raise ValueError(f"Unknown encoder type '{encoder_type}'. Choose 'gru' or 'signature'.")
 
-        self.encoder_type = encoder_type
+      self.encoder_type = encoder_type
 
-        if encoder_type == "gru":
-            self.encoder = ReverseGRUEncoder(
-                dimension_in=dimension_in,
-                latent_dim=latent_dim,
-                hidden_units=hidden_units // 2,
-                encode_obs_time=encode_obs_time
-            )
+      if encoder_type == "gru":
+          self.encoder = ReverseGRUEncoder(
+              dimension_in=dimension_in,
+              latent_dim=latent_dim,
+              hidden_units=hidden_units // 2,
+              encode_obs_time=encode_obs_time
+          )
 
-        elif encoder_type == "signature":
-            signature_kwargs = signature_kwargs or {}
-            self.encoder = SignatureEncoder(
-                dimension_in=dimension_in,
-                latent_dim=latent_dim,
-                hidden_units=hidden_units,
-                encode_obs_time=encode_obs_time,
-                **signature_kwargs
-            )
+      elif encoder_type == "signature":
+          signature_kwargs = signature_kwargs or {}
+          self.encoder = SignatureEncoder(
+              dimension_in=dimension_in,
+              latent_dim=latent_dim,
+              hidden_units=hidden_units,
+              encode_obs_time=encode_obs_time,
+              **signature_kwargs
+          )
 
     def forward(self, observed_data, observed_tp):
         return self.encoder(observed_data, observed_tp)
 
 
+import torch
+import torch.nn as nn
+import signatory
+
+
 class SignatureEncoder(nn.Module):
     """
     An encoder that uses path signatures to transform observed trajectories into latent representations.
-    
+
     This encoder optionally augments the input trajectory using convolutional layers before computing 
     its path signature via the Signatory library. The resulting signature is then projected into 
     a lower-dimensional latent space via a linear transformation.
-    
+
     Args:
         dimension_in (int): Dimensionality of the input data.
         latent_dim (int): Dimension of the output latent vector.
@@ -114,73 +119,73 @@ class SignatureEncoder(nn.Module):
         depth (int, optional): Depth of the path signature. Default is 3.
         stride (int, optional): Stride in the convolutional augmentation. Default is 1.
         use_augment (bool, optional): Whether to apply augmentation before computing the signature. Default is True.
-    
+
     Attributes:
         encode_obs_time (bool): Indicates whether observation time is included in the input.
         augment (signatory.Augment): The optional augmentation module.
         signature (signatory.Signature): Computes the path signature.
         linear_out (nn.Linear): Projects the signature into the latent space.
         use_augment (bool): Controls whether augmentation is applied.
-    
+
     Methods:
         forward(observed_data, observed_tp):
             Encodes a batch of input trajectories into a latent representation.
-        
-        Args:
-            observed_data (torch.Tensor): Input data of shape (batch_size, time_steps, dimension_in).
-            observed_tp (torch.Tensor): Observation times of shape (time_steps,).
-    
-        Returns:
-            torch.Tensor: Latent representation of shape (batch_size, latent_dim).
-    
-        Raises:
-            RuntimeError: If the input sequence is too short to compute a signature.
     """
-  def __init__(self,
-              dimension_in,
-              latent_dim,
-              hidden_units,
-              encode_obs_time=True,
-              n_features=4,
-              kernel_size=40,
-              depth=3,
-              stride=1,
-              use_augment=True):
-      super(SignatureEncoder, self).__init__()
-      self.encode_obs_time = encode_obs_time
-      self.dimension_in = dimension_in
-      self.augment = signatory.Augment(in_channels=dimension_in,
-                                        layer_sizes=(hidden_units // 2, 
-                                                     hidden_units // 2, 
-                                                     n_features),
-                                        kernel_size=kernel_size,
-                                        stride=stride,
-                                        include_original=True if stride == 1 else False,  
-                                        include_time=True if stride == 1 else False,)
-      self.signature = signatory.Signature(depth=depth)
-      channels = n_features
-      if stride == 1:
-        channels += 1 + dimension_in
-      if not use_augment:
-        channels = dimension_in
-      sig_channels = signatory.signature_channels(channels=channels,
-                                                  depth=depth)
-      self.linear_out = torch.nn.Linear(sig_channels, latent_dim)
-      nn.init.xavier_uniform_(self.linear_out.weight)
-      self.use_augment = use_augment
 
-  def forward(self, observed_data, observed_tp):
-    trajs_to_encode = observed_data
-    if self.encode_obs_time:
-      trajs_to_encode = torch.cat(
-          (observed_data, observed_tp.view(1, -1, 1).repeat(
-              observed_data.shape[0], 1, 1)),
-          dim=2)
-    x = self.augment(trajs_to_encode) if self.use_augment else trajs_to_encode
-    if x.size(1) <= 1:
-        raise RuntimeError("Input length is too short to take the signature")
-    x = self.signature(x, basepoint=True)
-    return self.linear_out(x)
+    def __init__(self,
+                 dimension_in,
+                 latent_dim,
+                 hidden_units,
+                 encode_obs_time=True,
+                 n_features=4,
+                 kernel_size=40,
+                 depth=3,
+                 stride=1,
+                 use_augment=True):
+        super(SignatureEncoder, self).__init__()
+        self.encode_obs_time = encode_obs_time
+        self.dimension_in = dimension_in
+        self.use_augment = use_augment
+
+        self.augment = signatory.Augment(
+            in_channels=dimension_in,
+            layer_sizes=(hidden_units // 2,
+                         hidden_units // 2,
+                         n_features),
+            kernel_size=kernel_size,
+            stride=stride,
+            include_original=(stride == 1),
+            include_time=(stride == 1)
+        )
+
+        self.signature = signatory.Signature(depth=depth)
+
+        channels = n_features
+        if stride == 1:
+            channels += 1 + dimension_in  # time + original input
+        if not use_augment:
+            channels = dimension_in
+
+        sig_channels = signatory.signature_channels(channels=channels, depth=depth)
+        self.linear_out = torch.nn.Linear(sig_channels, latent_dim)
+        nn.init.xavier_uniform_(self.linear_out.weight)
+
+    def forward(self, observed_data, observed_tp):
+        trajs_to_encode = observed_data
+        if self.encode_obs_time:
+            trajs_to_encode = torch.cat(
+                (observed_data,
+                 observed_tp.view(1, -1, 1).repeat(observed_data.shape[0], 1, 1)),
+                dim=2
+            )
+
+        x = self.augment(trajs_to_encode) if self.use_augment else trajs_to_encode
+
+        if x.size(1) <= 1:
+            raise RuntimeError("Input length is too short to take the signature")
+
+        x = self.signature(x, basepoint=True)
+        return self.linear_out(x)
 
 
 # Original code by Samuel Holt, from: https://github.com/samholt/NeuralLaplace
@@ -355,59 +360,72 @@ class Encoder_z0_signature(nn.Module):
                 Tuple[torch.Tensor, torch.Tensor]: Mean and standard deviation of z₀,
                 each of shape (1, batch_size, z0_dim).
     """
-  def __init__(self,
-              latent_dim,
-              dimension_in,
-              hidden_units=32,
-              z0_dim=None,
-              encode_obs_time=False,
-              n_features=4,
-              kernel_size=40,
-              depth=3,
-              stride=1,
-              use_augment=True):
-      super(Encoder_z0_signature, self).__init__()
-      self.encode_obs_time = encode_obs_time
-      self.dimension_in = dimension_in
-      self.augment = signatory.Augment(in_channels=dimension_in,
-                                        layer_sizes=(hidden_units // 2, 
-                                                     hidden_units // 2, 
-                                                     n_features),
-                                        kernel_size=kernel_size,
-                                        stride=stride,
-                                        include_original=True if stride == 1 else False,  
-                                        include_time=True if stride == 1 else False,)
-      self.signature = signatory.Signature(depth=depth)
-      channels = n_features
-      if stride == 1:
-        channels += 1 + dimension_in
-      if not use_augment:
-        channels = dimension_in
-      sig_channels = signatory.signature_channels(channels=channels,
-                                                  depth=depth)
-      self.sig_channels = sig_channels
-      self.linear_out = torch.nn.Linear(sig_channels, 2*z0_dim)
-      nn.init.xavier_uniform_(self.linear_out.weight)
-      self.latent_dim = latent_dim
-      self.use_augment = use_augment
-      self.z0_dim = z0_dim
 
-  def forward(self, observed_data, observed_tp, **kwargs):
-    trajs_to_encode = observed_data
-    if self.encode_obs_time:
-      trajs_to_encode = torch.cat(
-          (observed_data, observed_tp.view(1, -1, 1).repeat(
-              observed_data.shape[0], 1, 1)),
-          dim=2)
-    x = self.augment(trajs_to_encode) if self.use_augment else trajs_to_encode
-    if x.size(1) <= 1:
-        raise RuntimeError("Input length is too short to take the signature")
-    x = self.signature(x, basepoint=True)
-    z = self.linear_out(x)
-    mean_z0, std_z0 = z[:, :self.z0_dim], z[:, self.z0_dim:]
-    mean_z0, std_z0 = mean_z0.unsqueeze(0), std_z0.unsqueeze(0)
-    std_z0 = F.softplus(std_z0)
-    return mean_z0, std_z0
+    def __init__(self,
+                 latent_dim,
+                 dimension_in,
+                 hidden_units=32,
+                 z0_dim=None,
+                 encode_obs_time=False,
+                 n_features=4,
+                 kernel_size=40,
+                 depth=3,
+                 stride=1,
+                 use_augment=True):
+        super(Encoder_z0_signature, self).__init__()
+        self.encode_obs_time = encode_obs_time
+        self.dimension_in = dimension_in
+        self.latent_dim = latent_dim
+        self.z0_dim = z0_dim
+        self.use_augment = use_augment
+
+        self.augment = signatory.Augment(
+            in_channels=dimension_in,
+            layer_sizes=(hidden_units // 2,
+                         hidden_units // 2,
+                         n_features),
+            kernel_size=kernel_size,
+            stride=stride,
+            include_original=(stride == 1),
+            include_time=(stride == 1)
+        )
+
+        self.signature = signatory.Signature(depth=depth)
+
+        channels = n_features
+        if stride == 1:
+            channels += 1 + dimension_in
+        if not use_augment:
+            channels = dimension_in
+
+        sig_channels = signatory.signature_channels(channels=channels, depth=depth)
+        self.sig_channels = sig_channels
+
+        self.linear_out = nn.Linear(sig_channels, 2 * z0_dim)
+        nn.init.xavier_uniform_(self.linear_out.weight)
+
+    def forward(self, observed_data, observed_tp, **kwargs):
+        trajs_to_encode = observed_data
+        if self.encode_obs_time:
+            trajs_to_encode = torch.cat(
+                (observed_data,
+                 observed_tp.view(1, -1, 1).repeat(observed_data.shape[0], 1, 1)),
+                dim=2
+            )
+
+        x = self.augment(trajs_to_encode) if self.use_augment else trajs_to_encode
+
+        if x.size(1) <= 1:
+            raise RuntimeError("Input length is too short to take the signature")
+
+        x = self.signature(x, basepoint=True)
+        z = self.linear_out(x)
+
+        mean_z0, std_z0 = z[:, :self.z0_dim], z[:, self.z0_dim:]
+        mean_z0 = mean_z0.unsqueeze(0)
+        std_z0 = F.softplus(std_z0.unsqueeze(0))  # Ensures positivity
+
+        return mean_z0, std_z0
 
 
 # Original code by Samuel Holt, from: https://github.com/samholt/NeuralLaplace

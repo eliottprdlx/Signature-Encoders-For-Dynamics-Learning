@@ -120,10 +120,9 @@ def fitzhugh_nagumo_with_delay(device, double=False, trajectories_to_sample=100,
     tt = np.linspace(2, t_end, compute_points)
     sample_step = compute_points // t_nsamples
     evaluate_points = int(np.floor(np.sqrt(trajectories_to_sample)))
-    upper_bound = 5.0
-    x0s = np.linspace(-upper_bound, upper_bound, evaluate_points)
+    x0s = np.linspace(-5.0, 5.0, evaluate_points)
 
-    key = f"fitzhugh_nagumo_delay_trajectories_{evaluate_points}_{coupling_factor}_{upper_bound}"
+    key = f"fitzhugh_nagumo_delay_trajectories_{evaluate_points}_{coupling_factor}"
     try:
         with shelve.open("datasets") as db:
             trajectories = db[key]
