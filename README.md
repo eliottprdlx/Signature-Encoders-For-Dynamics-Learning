@@ -14,7 +14,13 @@ pip install -r requirements.txt
 
 ## Repository Structure
 
-`./baseline_models/`: Contains all models used in the experiments. 
+- `./baseline_models/`: Contains all models used in the experiments. 
+- `./baseline_models/encoders.py`: Defines a modular and extensible framework for both deterministic and variational encoders.  
+  It includes implementations of:
+  - Signature-based encoders using path signatures (via the Signatory library).
+  - RNN-based encoders such as GRU and ODE-RNN.
+  - Wrapper classes (`Encoder`, `Encoder_z0`) that abstract over architectural choices for flexibility in experimentation.
+- Other files in this directory contain baseline architectures and training routines used for compar
 
 ## Running the Numerical Experiments
 
