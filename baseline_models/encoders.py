@@ -30,20 +30,36 @@ from .ode import ODEModel
 
 class Encoder(nn.Module):
     """
-    A wrapper that allows switching between different types of encoders.
-
+    A unified interface for trajectory encoding using either a GRU or signature-based encoder.
+    This wrapper class simplifies the selection and configuration of different encoder types 
+    for temporal or sequential data.
+    
     Args:
         encoder_type (str): Type of encoder to use. Must be either "gru" or "signature".
-        dimension_in (int): Dimension of the input data.
-        latent_dim (int): Dimension of the latent output vector.
-        hidden_units (int): Number of hidden units (used in GRU or augment layers).
-        encode_obs_time (bool): Whether to concatenate time to inputs.
-        signature_kwargs (dict): Additional keyword arguments passed to the SignatureEncoder.
+        dimension_in (int): Dimensionality of the input features.
+        latent_dim (int): Dimensionality of the output latent vector.
+        hidden_units (int): Number of hidden units used in the GRU or augmentation network.
+        encode_obs_time (bool, optional): Whether to include observation times in the input. Default is True.
+        signature_kwargs (dict, optional): Additional keyword arguments to configure the SignatureEncoder.
+
+    Attributes:
+        encoder_type (str): Indicates the selected encoder type.
+        encoder (nn.Module): The instantiated encoder (either ReverseGRUEncoder or SignatureEncoder).
 
     Raises:
-        ValueError: If encoder_type is not recognized.
-    """
+        ValueError: If the specified encoder_type is not "gru" or "signature".
 
+    Methods:
+        forward(observed_data, observed_tp):
+            Encodes a batch of input trajectories into latent vectors.
+
+            Args:
+                observed_data (torch.Tensor): Input tensor of shape (batch_size, time_steps, dimension_in).
+                observed_tp (torch.Tensor): Timepoints of observations, of shape (time_steps,).
+
+            Returns:
+                torch.Tensor: Latent representation of shape (batch_size, latent_dim).
+    """
     def __init__(self,
                  encoder_type,
                  dimension_in,
@@ -81,6 +97,45 @@ class Encoder(nn.Module):
 
 
 class SignatureEncoder(nn.Module):
+    """
+    An encoder that uses path signatures to transform observed trajectories into latent representations.
+    
+    This encoder optionally augments the input trajectory using convolutional layers before computing 
+    its path signature via the Signatory library. The resulting signature is then projected into 
+    a lower-dimensional latent space via a linear transformation.
+    
+    Args:
+        dimension_in (int): Dimensionality of the input data.
+        latent_dim (int): Dimension of the output latent vector.
+        hidden_units (int): Number of hidden units in the augmentation network.
+        encode_obs_time (bool, optional): Whether to append observation times to the input. Default is True.
+        n_features (int, optional): Number of output channels from the augmentation network. Default is 4.
+        kernel_size (int, optional): Convolutional kernel size for augmentation. Default is 40.
+        depth (int, optional): Depth of the path signature. Default is 3.
+        stride (int, optional): Stride in the convolutional augmentation. Default is 1.
+        use_augment (bool, optional): Whether to apply augmentation before computing the signature. Default is True.
+    
+    Attributes:
+        encode_obs_time (bool): Indicates whether observation time is included in the input.
+        augment (signatory.Augment): The optional augmentation module.
+        signature (signatory.Signature): Computes the path signature.
+        linear_out (nn.Linear): Projects the signature into the latent space.
+        use_augment (bool): Controls whether augmentation is applied.
+    
+    Methods:
+        forward(observed_data, observed_tp):
+            Encodes a batch of input trajectories into a latent representation.
+        
+        Args:
+            observed_data (torch.Tensor): Input data of shape (batch_size, time_steps, dimension_in).
+            observed_tp (torch.Tensor): Observation times of shape (time_steps,).
+    
+        Returns:
+            torch.Tensor: Latent representation of shape (batch_size, latent_dim).
+    
+        Raises:
+            RuntimeError: If the input sequence is too short to compute a signature.
+    """
   def __init__(self,
               dimension_in,
               latent_dim,
@@ -188,13 +243,35 @@ class ReverseGRUEncoder(nn.Module):
 
 class Encoder_z0(nn.Module):
     """
-    A wrapper that allows switching between different types of variational encoders.
+    A unified interface for variational initial state encoders in latent ODE models.
+
+    This wrapper class abstracts over multiple encoder architectures for estimating
+    the initial latent state z₀ from observed time series data. Supported architectures
+    include a signature-based encoder and an ODE-RNN-based encoder.
+
     Args:
-        encoder_type (str): Either 'signature' or 'ode_rnn'.
-        latent_dim (int): Dimension of latent state.
-        z0_dim (int): Dimension of z₀ vector (optional).
-        device (torch.device): Device to run on.
-        encoder_kwargs (dict): Additional arguments specific to the chosen encoder.
+        input_dim (int): Dimensionality of the input features.
+        encoder_type (str): Type of encoder to use. Must be either 'signature' or 'ode_rnn'.
+        latent_dim (int): Dimensionality of the latent space.
+        hidden_units (int): Number of hidden units used in the encoder.
+        z0_dim (int, optional): Dimensionality of the latent initial state z₀. Defaults to `latent_dim` if not specified.
+        device (torch.device, optional): Device on which computations will be performed. Default is CPU.
+        encoder_kwargs (dict, optional): Additional keyword arguments specific to the selected encoder type.
+
+    Raises:
+        ValueError: If an unsupported encoder type is provided.
+        ValueError: If 'z0_diffeq_solver' is missing for the 'ode_rnn' encoder.
+
+    Attributes:
+        encoder_type (str): The name of the selected encoder architecture.
+        encoder (nn.Module): The instantiated encoder module (either `Encoder_z0_signature` or `Encoder_z0_ODE_RNN`).
+
+    Methods:
+        forward(*args, **kwargs):
+            Forwards the input through the selected encoder.
+
+            Returns:
+                Tuple[torch.Tensor, torch.Tensor]: Mean and standard deviation of the initial latent state z₀.
     """
     def __init__(self,
                  input_dim,
@@ -242,6 +319,42 @@ class Encoder_z0(nn.Module):
 
 
 class Encoder_z0_signature(nn.Module):
+    """
+    A signature-based encoder for initializing the latent state z₀ in latent ODE models.
+
+    This encoder applies optional convolutional augmentation to the input trajectory, computes 
+    the path signature using the Signatory library, and projects it to the initial mean and 
+    standard deviation of z₀ via a linear layer.
+
+    Args:
+        latent_dim (int): Dimensionality of the latent space.
+        dimension_in (int): Dimensionality of the input features.
+        hidden_units (int, optional): Number of hidden units in the augmentation network. Default is 32.
+        z0_dim (int, optional): Dimensionality of the latent initial state z₀. Required.
+        encode_obs_time (bool, optional): Whether to include observation times as part of the input. Default is False.
+        n_features (int, optional): Number of output features from the augmentation network. Default is 4.
+        kernel_size (int, optional): Kernel size for the convolutional augmentation layers. Default is 40.
+        depth (int, optional): Depth of the path signature computation. Default is 3.
+        stride (int, optional): Stride used in augmentation. Default is 1.
+        use_augment (bool, optional): Whether to apply augmentation before signature computation. Default is True.
+
+    Attributes:
+        signature (signatory.Signature): Signature layer to compute path features.
+        linear_out (nn.Linear): Linear projection to the z₀ mean and log std.
+        sig_channels (int): Number of channels in the computed signature.
+
+    Methods:
+        forward(observed_data, observed_tp):
+            Computes the mean and standard deviation of the initial latent state z₀.
+
+            Args:
+                observed_data (torch.Tensor): Input tensor of shape (batch_size, time_steps, dimension_in).
+                observed_tp (torch.Tensor): Time points of shape (time_steps,).
+
+            Returns:
+                Tuple[torch.Tensor, torch.Tensor]: Mean and standard deviation of z₀,
+                each of shape (1, batch_size, z0_dim).
+    """
   def __init__(self,
               latent_dim,
               dimension_in,
