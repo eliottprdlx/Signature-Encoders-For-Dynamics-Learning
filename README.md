@@ -19,7 +19,7 @@ pip install -r requirements.txt
   - Signature-based encoders using path signatures (via the Signatory library).
   - RNN-based encoders such as GRU and ODE-RNN.
   - Wrapper classes (`Encoder`, `Encoder_z0`) that abstract over architectural choices for flexibility in experimentation.
-- Other files in `./baseline_models/ contain baseline architectures.
+- Other files in `./baseline_models/` contain baseline architectures.
 - Other files in this directory contain training routines and scripts to run the experiments.
 
 ## Running the Numerical Experiments
