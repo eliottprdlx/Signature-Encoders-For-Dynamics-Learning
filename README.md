@@ -14,12 +14,12 @@ pip install -r requirements.txt
 
 ## Repository Structure
 
-- `./baseline_models/encoders.py`: Defines a modular and extensible framework for both deterministic and variational encoders.  
+- `baseline_models/encoders.py`: Defines a modular and extensible framework for both deterministic and variational encoders.  
   It includes implementations of:
   - Signature-based encoders using path signatures (via the Signatory library).
   - RNN-based encoders such as GRU and ODE-RNN.
   - Wrapper classes (`Encoder`, `Encoder_z0`) that abstract over architectural choices for flexibility in experimentation.
-- Other files in `./baseline_models/` contain baseline architectures.
+- Other files in `baseline_models/` contain baseline architectures.
 - Other files in this directory contain training routines and scripts to run the experiments.
 
 ## Running the Numerical Experiments
@@ -29,7 +29,7 @@ pip install -r requirements.txt
 To compare all baselines across all datasets, execute the script:
 
 ```bash
-./run_baselines_comparison.sh
+run_baselines_comparison.sh
 ```
 
 ### Ablation Study
@@ -37,7 +37,7 @@ To compare all baselines across all datasets, execute the script:
 To perform the ablation study, execute the script:
 
 ```bash
-./run_ablation_study.sh
+run_ablation_study.sh
 ```
 
 ### Sensitivity Analysis
@@ -45,7 +45,7 @@ To perform the ablation study, execute the script:
 To perform the sensitivity analysis, execute the script:
 
 ```bash
-./run_sensitivity_analysis.sh
+run_sensitivity_analysis.sh
 ```
 
 ### Coupling Factor Experiment
@@ -53,7 +53,7 @@ To perform the sensitivity analysis, execute the script:
 To perform the coupling factor experiment, execute the script:
 
 ```bash
-./run_exp_coupling.sh
+run_exp_coupling.sh
 ```
 
 ### Additional Experiments
@@ -61,5 +61,5 @@ To perform the coupling factor experiment, execute the script:
 To perform the additional experiments, make sure to first run `run_baselines_comparison.sh`, then execute the script:
 
 ```bash
-./run_other_tests.sh
+run_other_tests.sh
 ```
