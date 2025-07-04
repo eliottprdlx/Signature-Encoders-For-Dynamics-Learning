@@ -2,7 +2,7 @@
 
 This repository provides instructions to generate all datasets used in our paper, along with the necessary files to train each model and perform the numerical experiments. Most of the code is adapted from the [Neural Laplace GitHub Repository](https://github.com/samholt/NeuralLaplace). To get started with the Signatory library, we recommend consulting the [Signatory Documentation](https://signatory.readthedocs.io/en/latest/).
 
-The `exp_all_baselines.py`, `ablation_study.py` and `sensitivity_analysis.py` file returns a pandas DataFrame of the test RMSE extrapolation error with standard deviation across input seed runs. This information is printed to the console and logged in a log file at the end of all seed runs. Additionally, it saves training metadata in a local `./results` folder, including the training loss array and the state of the best model. The `other_tests.py` file only returns a pandas DataFrame of the test RMSE extrapolation error with standard deviation across input seed runs.
+The `exp_all_baselines.py`, `ablation_study.py` and `sensitivity_analysis.py` files return a pandas DataFrame of the test RMSE extrapolation error with standard deviation across input seed runs. This information is printed to the console and logged in a log file at the end of all seed runs. Additionally, it saves training metadata in a local `./results` folder, including the training loss array and the state of the best model. The `other_tests.py` file only returns a pandas DataFrame of the test RMSE extrapolation error with standard deviation across input seed runs.
 
 ## Installation
 
